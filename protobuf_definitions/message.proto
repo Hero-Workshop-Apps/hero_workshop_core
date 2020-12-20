@@ -113,6 +113,8 @@ message Duration {
         Empty sustained = 1;
         uint32 minutes = 2;
         Empty instant = 3;
+        Empty untilStartOfNextTurn = 4;
+        Empty untilEndOfTurn = 5;
     }
 }
 
