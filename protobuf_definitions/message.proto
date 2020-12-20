@@ -159,12 +159,14 @@ message Sense {
 
 // AKA Race
 message Ancestry {
-    uint32 hp = 1;
-    Size size = 2;
-    uint32 speed = 3;
-    repeated Ability abilityBoosts = 4;
-    repeated Ability abilityFlaws = 5;
-    repeated int32 baseLanguages = 6;
-    repeated int32 extraLanguages = 7;
-    repeated int32 senses = 8;
+    int32 id = 1;
+    string name = 2;
+    uint32 hp = 3;
+    Size size = 4;
+    uint32 speed = 5;
+    repeated Ability abilityBoosts = 6;
+    repeated Ability abilityFlaws = 7;
+    repeated int32 baseLanguages = 8;
+    repeated int32 extraLanguages = 9;
+    repeated int32 senses = 10;
 }
