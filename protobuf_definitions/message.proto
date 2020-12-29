@@ -131,6 +131,7 @@ message SpellComponent {
     string name = 2;
 }
 
+// If you change this message don't forget to also change SpellAlterations
 message Spell {
     int32 id = 1;
     string name = 2;
@@ -150,7 +151,7 @@ message Spell {
 message Language {
     int32 id = 1;
     string name = 2;
-    string description = 3;
+    repeated string speakers = 3;
 }
 
 message Sense {
@@ -171,4 +172,182 @@ message Ancestry {
     repeated int32 baseLanguages = 8;
     repeated int32 extraLanguages = 9;
     repeated int32 senses = 10;
+}
+
+message AbilityScore {
+    Ability ability = 1;
+    int32 score = 2;
+}
+
+enum ArmorType {
+    ARMOR_TYPE_UNARMORED = 0;
+    ARMOR_TYPE_LIGHT = 1;
+    ARMOR_TYPE_MEDIUM = 2;
+    ARMOR_TYPE_HEAVY = 3;
+}
+
+message Equipment {
+    // TODO
+}
+
+message EquipmentCategory {
+    int32 id = 1 ;
+    string name = 2;
+}
+
+message WeaponTraining {
+    int32 equipmentCategory = 1;
+    Training training = 2;
+}
+
+message ConfiguredFeat {
+    int32 feat = 1;
+    string configuration = 2;
+}
+
+message Item {
+    int32 id = 1;
+    string name = 2;
+    //TODO
+}
+
+message ConfiguredItem {
+    int32 id = 1;
+    // TODO
+}
+
+message FreeActionOrReaction {
+    // TODO
+}
+
+message ConfiguredSpell {
+    int32 spell = 1;
+    bool signature = 2;
+    oneof altered {
+        SpellAlterations spellAlterations = 3;
+    }
+}
+
+message ConfiguredEquipment {
+    int32 id = 1;
+    // TODO
+}
+
+// These messages exist because Protobufs is dumb and won't let a oneof field be repeated.
+
+message RepeatedInt32 {
+    repeated int32 traits = 1;
+}
+
+message RepeatedHeightens {
+    repeated Heightened heightens = 1;
+}
+
+message RepeatedSpellComponents {
+    repeated SpellComponent components = 1;
+}
+
+// In this context oneof is used to provide the field with a "not set" state
+message SpellAlterations {
+    oneof name {
+        string newName = 1;
+    }
+    oneof level {
+        uint32 newLevel = 2;
+    }
+    oneof description {
+        string newDescription = 3;
+    }
+    oneof traits {
+        RepeatedInt32 newTraits = 4;
+    }
+    oneof traditions {
+        RepeatedInt32 newTraditions = 5;
+    }
+    oneof targeting {
+        Targeting newTargeting = 6;
+    }
+    oneof duration {
+        Duration newDuration = 7;
+    }
+    oneof bloodline {
+        int32 newBloodline = 8;
+    }
+    oneof deities {
+        RepeatedInt32 newDeities = 9;
+    }
+    oneof heightens {
+        RepeatedHeightens newHeightens = 20;
+    }
+    oneof components {
+        RepeatedSpellComponents newComponents = 11;
+    }
+    oneof actions {
+        uint32 newActions = 12;
+    }
+}
+
+message Character {
+    int32 id = 1;
+    string name = 2;
+    string playerName = 3;
+    int32 experience = 4;
+    int32 ancestry = 5;
+    string background = 6;
+    int32 class = 7;
+    Size size = 8;
+    Alignment alignment = 9;
+    repeated int32 traits = 10;
+    int32 level = 11;
+    repeated int32 deities = 12;
+    repeated AbilityScore abilityScores = 13;
+    Training unarmoredTraining = 14;
+    Training lightArmorTraining = 15;
+    Training mediumArmorTraining = 16;
+    Training heavyArmorTraining = 17;
+    int32 maxHp = 18;
+    Training fortitudeTraining = 19;
+    Training reflexTraining = 20;
+    Training willTraining = 21;
+    Training perceptionTraining = 22;
+    Training classDcTraining = 23;
+    int32 speed = 24;
+    repeated SkillTraining skills = 25;
+    repeated ConfiguredEquipment equippedItems = 26;
+    repeated WeaponTraining weaponTrainings = 27;
+    repeated int32 languages = 28;
+    repeated ConfiguredFeat ancestryFeats = 29;
+    repeated ConfiguredFeat classFeats = 30;
+    repeated ConfiguredFeat skillFeats = 31;
+    repeated ConfiguredFeat generalFeats = 32;
+    repeated ConfiguredFeat bonusFeats = 33;
+    repeated ConfiguredItem wornItems = 34;
+    repeated ConfiguredItem readiedItems = 35;
+    repeated ConfiguredItem otherItems = 36;
+    // This represents all of the currency this character has expressed as a number of copper coins
+    int32 cumulativeCopperPieces = 37;
+    string ethnicity = 38;
+    string nationality = 39;
+    string birthplace = 40;
+    int32 age = 41;
+    string genderAndPronouns = 42;
+    string height = 43;
+    string weight = 44;
+    string appearance = 45;
+    string attitude = 46;
+    string beliefs = 47;
+    string likes = 48;
+    string dislikes = 49;
+    string catchphrases = 50;
+    string campaignNotes = 51;
+    string allies = 52;
+    string enemies = 53;
+    string organizations = 54;
+    repeated FreeActionOrReaction freeActionsAndReactions = 55;
+    Training spellAttackTraining = 56;
+    Training spellDcTraining = 57;
+    repeated int32 magicTraditions = 58;
+    repeated int32 spellSlotMaximums = 59;
+    repeated ConfiguredSpell spells = 60;
+    int32 maximumFocusPoints = 61;
 }
