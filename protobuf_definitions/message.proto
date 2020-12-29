@@ -236,7 +236,7 @@ message ConfiguredEquipment {
 // These messages exist because Protobufs is dumb and won't let a oneof field be repeated.
 
 message RepeatedInt32 {
-    repeated int32 traits = 1;
+    repeated int32 ints = 1;
 }
 
 message RepeatedHeightens {
