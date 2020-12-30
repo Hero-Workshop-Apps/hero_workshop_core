@@ -24,8 +24,8 @@ fn main() {
         let file_path = proto_dir.join(file_name);
         let file_content = fs::read_to_string(&file_path).unwrap();
         let mut lines = file_content.lines().collect::<Vec<_>>();
-        let version_check_index = lines.iter().enumerate().rfind(|l| l.1.contains("_PROTOBUF_VERSION_CHECK")).unwrap().0;
+        let version_check_index = lines.iter().position(|l| l.contains("_PROTOBUF_VERSION_CHECK")).unwrap();
         lines.insert(version_check_index + 1, "use serde::{Deserialize, Serialize};");
-        fs::write(file_path, lines.iter().map(|s| vec![*s, "\n"]).flatten().collect::<String>()).unwrap();
+        fs::write(file_path, lines.iter().flat_map(|s| arrayvec::ArrayVec::from([*s, "\n"])).collect::<String>()).unwrap();
     }
 }
