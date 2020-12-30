@@ -16,7 +16,10 @@ mod ffi {
 }
 
 pub fn protobuf_entry_point(_input: Vec<u8>) -> Vec<u8> {
-    Vec::from("Hello world!")
+    std::panic::catch_unwind(move || {
+        Vec::from("Hello world!")
+    })
+    .unwrap_or_else(|_| Vec::from("Core panicked. This is not supposed to happen! stderr should have more info about what went wrong."))
 }
 
 #[cfg(test)]
