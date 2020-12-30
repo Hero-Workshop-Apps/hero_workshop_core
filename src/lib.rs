@@ -15,7 +15,7 @@ mod ffi {
     }
 }
 
-fn protobuf_entry_point(_input: Vec<u8>) -> Vec<u8> {
+pub fn protobuf_entry_point(_input: Vec<u8>) -> Vec<u8> {
     Vec::from("Hello world!")
 }
 
