@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package HeroWorkshop;
+import "google/protobuf/empty.proto";
 
-message Empty {}
+package HeroWorkshop;
 
 enum Ability {
     ABILITY_STRENGTH = 0;
@@ -110,11 +110,11 @@ message Targeting {
 
 message Duration {
     oneof type {
-        Empty sustained = 1;
+        google.protobuf.Empty sustained = 1;
         uint32 minutes = 2;
-        Empty instant = 3;
-        Empty untilStartOfNextTurn = 4;
-        Empty untilEndOfTurn = 5;
+        google.protobuf.Empty instant = 3;
+        google.protobuf.Empty untilStartOfNextTurn = 4;
+        google.protobuf.Empty untilEndOfTurn = 5;
     }
 }
 
