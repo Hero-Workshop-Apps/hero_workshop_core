@@ -2,6 +2,8 @@ import getpass
 import os
 import sys
 import subprocess
+import urllib.request
+import zipfile
 
 from pathlib import Path
 
@@ -29,11 +31,13 @@ if missing_rust_targets != '':
     print('One or more android rust targets are missing. Please install them with "rustup target add ' + missing_rust_targets + '"')
     exit()
 
+gradlew = './gradlew'
 if 'ANDROID_HOME' in os.environ:
     android_sdk_dir = os.environ['ANDROID_HOME']
 else:
     if sys.platform == 'win32':
         android_sdk_dir = 'C:\\Users\\' + getpass.getuser() + '\\AppData\\Local\\Android\\Sdk\\'
+        gradlew = '.\gradlew.bat'
     elif sys.platform == 'darwin':
         android_sdk_dir = '/Users/' + getpass.getuser() + '/Library/Android/sdk/'
     else:
@@ -64,4 +68,35 @@ for target in target_list:
     rustflags += ' -C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0])
     rustflags += ' -C linker=' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'bin' / (target[0] + '-ld'))
     os.environ['RUSTFLAGS'] = rustflags
-    subprocess.run(['cargo', 'build', '--release', '--target', target[0]])
+    if subprocess.run(['cargo', 'build', '--release', '--target', target[0]]).returncode != 0:
+        exit()
+
+# Everything is built and generated, let's package it for android using Google's Prefab tool.
+
+print('All builds successful, now downloading and building Google Prefab.')
+
+# Google's Prefab tool must use JDK 1.8. I don't make the rules.
+if '1.8.0' not in subprocess.run(['javac', '-version'], capture_output=True, encoding='utf-8').stdout:
+    if sys.platform == 'win32':
+        os.environ['JAVA_HOME'] = str(next(Path('C:\\Program Files\\Java\\').glob('jdk1.8.0_*')))
+    else:
+        print("**** WARNING: JDK 1.8 required. Javac on path isn't 1.8 and searching for it in a more robust manner isn't implemented on this platform. ****")
+        print("**** This might work anyways, so I won't stop you, but I don't expect it to work. ****")
+
+prefab_path = Path('prefab') / 'prefab-1.1.2'
+if not prefab_path.exists():
+    os.makedirs('prefab')
+    zippath = Path('prefab') / 'prefab.zip'
+    urllib.request.urlretrieve('https://github.com/google/prefab/archive/v1.1.2.zip', zippath)
+    with zipfile.ZipFile(zippath, 'r') as zip_ref:
+        zip_ref.extractall('prefab')
+    os.remove(zippath)
+
+if subprocess.run([gradlew, 'installDist'], cwd=prefab_path, shell=True).returncode != 0:
+    print('Running prefab build failed.')
+    exit()
+if sys.platform == 'win32':
+    prefab = 'prefab.bat'
+else :
+    prefab = 'prefab'
+subprocess.run([prefab_path / 'cli' / 'build' / 'install' / 'prefab' / 'bin' / 'prefab' / prefab], shell=True)
