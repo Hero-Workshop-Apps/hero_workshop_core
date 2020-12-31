@@ -37,7 +37,7 @@ if 'ANDROID_HOME' in os.environ:
 else:
     if sys.platform == 'win32':
         android_sdk_dir = 'C:\\Users\\' + getpass.getuser() + '\\AppData\\Local\\Android\\Sdk\\'
-        gradlew = '.\gradlew.bat'
+        gradlew = '.\\gradlew.bat'
     elif sys.platform == 'darwin':
         android_sdk_dir = '/Users/' + getpass.getuser() + '/Library/Android/sdk/'
     else:
@@ -97,6 +97,6 @@ if subprocess.run([gradlew, 'installDist'], cwd=prefab_path, shell=True).returnc
     exit()
 if sys.platform == 'win32':
     prefab = 'prefab.bat'
-else :
+else:
     prefab = 'prefab'
 subprocess.run([prefab_path / 'cli' / 'build' / 'install' / 'prefab' / 'bin' / 'prefab' / prefab], shell=True)
