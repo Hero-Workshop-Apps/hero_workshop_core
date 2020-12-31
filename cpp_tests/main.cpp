@@ -1,5 +1,5 @@
 #include <iostream>
-#include "hero_workshop_core.h"
+#include "hero_workshop_core/src/lib.rs.h"
 
 int main() {
     auto response = protobuf_entry_point(::rust::Vec<uint8_t>());

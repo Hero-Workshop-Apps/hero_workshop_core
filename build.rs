@@ -28,4 +28,7 @@ fn main() {
         lines.insert(version_check_index + 1, "use serde::{Deserialize, Serialize};");
         fs::write(file_path, lines.iter().flat_map(|s| arrayvec::ArrayVec::from([*s, "\n"])).collect::<String>()).unwrap();
     }
+    println!("cargo:rerun-if-changed=src/lib.rs");
+    cxx_build::bridge("src/lib.rs")
+        .compile("cxxbridge_hero_workshop_core");
 }
