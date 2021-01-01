@@ -14,10 +14,10 @@ ndk_version = '21.3.6528147'
 # the third being the abi identifier used in Android package archives, and the fourth being the Android API version in use for that architecture.
 # because when has being consistent ever been a good thing?
 target_list = [
-    ('aarch64-linux-android', 'aarch64-linux-android', 'arm64-v8a', 16),
+    ('aarch64-linux-android', 'aarch64-linux-android', 'arm64-v8a', 21),
     ('arm-linux-androideabi', 'arm-linux-androideabi', 'armeabi-v7a', 16),
     ('x86_64-linux-android', 'x86_64', 'x86_64', 21),
-    ('i686-linux-android', 'x86', 'x86', 21)
+    ('i686-linux-android', 'x86', 'x86', 16)
 ]
 
 installed_rust_targets = subprocess.run(['rustup', 'target', 'list', '--installed'], capture_output=True, encoding='utf-8').stdout.splitlines()
@@ -77,18 +77,19 @@ print('All builds successful, preparing android package now.')
 try:
     package_path = Path('prefab') / 'modules' / 'hero_workshop_core'
     (package_path / 'include').mkdir(parents=True)
-    (package_path / 'prefab.json').write_text('{ "schema_version": 1, "name": "hero_workshop_core, "dependencies": [] }')
+    (Path('prefab') / 'prefab.json').write_text('{ "schema_version": 1, "name": "hero_workshop_core", "dependencies": [] }')
+    (package_path / 'module.json').write_text('{ "export_libraries": [], "android": {} }')
     ndk_major_version = ndk_version[0:ndk_version.find('.')]
     for target in target_list:
         target_path = (package_path / 'libs' / ('android.' + target[2]))
         target_path.mkdir(parents=True)
-        shutil.copy(Path('target') / target[0] / 'release' / 'libhero_workshop_core.so', target_path)
+        shutil.copy(Path('target') / target[0] / 'release' / 'libhero_workshop_core.a', target_path)
         (target_path / 'include').mkdir()
         for header_path in (Path('target') / target[0] / 'cxxbridge').glob('**/*.h'):
             dest_path = Path(str(target_path / 'include') + str(header_path)[len(str(Path('target') / target[0] / 'cxxbridge')):])
             dest_path.parent.mkdir(exist_ok=True, parents=True)
             shutil.copy(header_path, dest_path)
-        (target_path / 'abi.json').write_text('{{ "abi": "{abi}", "api": {api}, "ndk": {ndk}, "stl": "c++_shared" }}'.format(abi = target[2], api = target[3], ndk = ndk_major_version))
+        (target_path / 'abi.json').write_text('{{ "abi": "{abi}", "api": {api}, "ndk": {ndk}, "stl": "c++_static" }}'.format(abi = target[2], api = 16, ndk = ndk_major_version))
     with zipfile.ZipFile('hero_workshop_core.aar', mode='w') as zipref:
         zipref.write('AndroidManifest.xml')
         for path in Path('prefab').glob('**/*'):
