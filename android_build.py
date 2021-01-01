@@ -1,7 +1,8 @@
 import getpass
 import os
-import sys
+import shutil
 import subprocess
+import sys
 import urllib.request
 import zipfile
 
@@ -9,13 +10,14 @@ from pathlib import Path
 
 ndk_version = '21.3.6528147'
 
-# Pairs, the first representing the llvm target triple, and the second being the name of the folder where Google decided to put the toolchain
+# Tuples, the first representing the llvm target triple, the second being the name of the folder where Google decided to put the toolchain,
+# the third being the abi identifier used in Android package archives, and the fourth being the Android API version in use for that architecture.
 # because when has being consistent ever been a good thing?
 target_list = [
-    ('aarch64-linux-android', 'aarch64-linux-android'),
-    ('arm-linux-androideabi', 'arm-linux-androideabi'),
-    ('x86_64-linux-android', 'x86_64'),
-    ('i686-linux-android', 'x86')
+    ('aarch64-linux-android', 'aarch64-linux-android', 'arm64-v8a', 16),
+    ('arm-linux-androideabi', 'arm-linux-androideabi', 'armeabi-v7a', 16),
+    ('x86_64-linux-android', 'x86_64', 'x86_64', 21),
+    ('i686-linux-android', 'x86', 'x86', 21)
 ]
 
 installed_rust_targets = subprocess.run(['rustup', 'target', 'list', '--installed'], capture_output=True, encoding='utf-8').stdout.splitlines()
@@ -28,8 +30,8 @@ for target in map(lambda x:x[0], target_list):
         
 
 if missing_rust_targets != '':
-    print('One or more android rust targets are missing. Please install them with "rustup target add ' + missing_rust_targets + '"')
-    exit()
+    print('ERROR: One or more android rust targets are missing. Please install them with `rustup target add ' + missing_rust_targets + '`')
+    sys.exit(1)
 
 gradlew = './gradlew'
 if 'ANDROID_HOME' in os.environ:
@@ -41,16 +43,16 @@ else:
     elif sys.platform == 'darwin':
         android_sdk_dir = '/Users/' + getpass.getuser() + '/Library/Android/sdk/'
     else:
-        print("I don't know where to find the Android SDK. Please set the ANDROID_HOME environment variable to the location of the SDK.")
-        exit()
+        print("ERROR: I don't know where to find the Android SDK. Please set the ANDROID_HOME environment variable to the location of the SDK.")
+        sys.exit(1)
 android_sdk_dir = Path(android_sdk_dir)
 if not android_sdk_dir.exists():
-    print("Android SDK doesn't exist at " + str(android_sdk_dir))
+    print("ERROR: Android SDK doesn't exist at " + str(android_sdk_dir))
     print("You need to either set the ANDROID_HOME environment variable, or install the SDK at the aforementioned path.")
-    exit()
+    sys.exit(1)
 if not (android_sdk_dir / 'ndk' / ndk_version).exists():
-    print("Android NDK version " + ndk_version + "not found. You need to install " + ndk_version + " from Android Studio.")
-    exit()
+    print("ERROR: Android NDK version " + ndk_version + "not found. You need to install " + ndk_version + " from Android Studio.")
+    sys.exit(1)
 base_flags = '-I ' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'include' / 'c++' / 'v1')
 base_flags += ' -I ' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'include')
 base_path = os.environ['PATH']
@@ -69,34 +71,31 @@ for target in target_list:
     rustflags += ' -C linker=' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'bin' / (target[0] + '-ld'))
     os.environ['RUSTFLAGS'] = rustflags
     if subprocess.run(['cargo', 'build', '--release', '--target', target[0]]).returncode != 0:
-        exit()
+        sys.exit(1)
 
-# Everything is built and generated, let's package it for android using Google's Prefab tool.
-
-print('All builds successful, now downloading and building Google Prefab.')
-
-# Google's Prefab tool must use JDK 1.8. I don't make the rules.
-if '1.8.0' not in subprocess.run(['javac', '-version'], capture_output=True, encoding='utf-8').stdout:
-    if sys.platform == 'win32':
-        os.environ['JAVA_HOME'] = str(next(Path('C:\\Program Files\\Java\\').glob('jdk1.8.0_*')))
-    else:
-        print("**** WARNING: JDK 1.8 required. Javac on path isn't 1.8 and searching for it in a more robust manner isn't implemented on this platform. ****")
-        print("**** This might work anyways, so I won't stop you, but I don't expect it to work. ****")
-
-prefab_path = Path('prefab') / 'prefab-1.1.2'
-if not prefab_path.exists():
-    os.makedirs('prefab')
-    zippath = Path('prefab') / 'prefab.zip'
-    urllib.request.urlretrieve('https://github.com/google/prefab/archive/v1.1.2.zip', zippath)
-    with zipfile.ZipFile(zippath, 'r') as zip_ref:
-        zip_ref.extractall('prefab')
-    os.remove(zippath)
-
-if subprocess.run([gradlew, 'installDist'], cwd=prefab_path, shell=True).returncode != 0:
-    print('Running prefab build failed.')
-    exit()
-if sys.platform == 'win32':
-    prefab = 'prefab.bat'
+print('All builds successful, preparing android package now.')
+try:
+    package_path = Path('prefab') / 'modules' / 'hero_workshop_core'
+    (package_path / 'include').mkdir(parents=True)
+    (package_path / 'prefab.json').write_text('{ "schema_version": 1, "name": "hero_workshop_core, "dependencies": [] }')
+    ndk_major_version = ndk_version[0:ndk_version.find('.')]
+    for target in target_list:
+        target_path = (package_path / 'libs' / ('android.' + target[2]))
+        target_path.mkdir(parents=True)
+        shutil.copy(Path('target') / target[0] / 'release' / 'libhero_workshop_core.so', target_path)
+        (target_path / 'include').mkdir()
+        for header_path in (Path('target') / target[0] / 'cxxbridge').glob('**/*.h'):
+            dest_path = Path(str(target_path / 'include') + str(header_path)[len(str(Path('target') / target[0] / 'cxxbridge')):])
+            dest_path.parent.mkdir(exist_ok=True, parents=True)
+            shutil.copy(header_path, dest_path)
+        (target_path / 'abi.json').write_text('{{ "abi": "{abi}", "api": {api}, "ndk": {ndk}, "stl": "c++_shared" }}'.format(abi = target[2], api = target[3], ndk = ndk_major_version))
+    with zipfile.ZipFile('hero_workshop_core.aar', mode='w') as zipref:
+        zipref.write('AndroidManifest.xml')
+        for path in Path('prefab').glob('**/*'):
+            zipref.write(path)
+except Exception as e:
+    print('Error making package:', e)
 else:
-    prefab = 'prefab'
-subprocess.run([prefab_path / 'cli' / 'build' / 'install' / 'prefab' / 'bin' / 'prefab' / prefab], shell=True)
+    print('Package ready!')
+finally:
+    shutil.rmtree('prefab')
