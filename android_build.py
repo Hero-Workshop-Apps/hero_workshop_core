@@ -1,6 +1,5 @@
 import getpass
 import os
-import shutil
 import subprocess
 import sys
 import urllib.request
@@ -21,16 +20,14 @@ target_list = [
 ]
 
 installed_rust_targets = subprocess.run(['rustup', 'target', 'list', '--installed'], capture_output=True, encoding='utf-8').stdout.splitlines()
-missing_rust_targets = ''
+missing_rust_targets = []
 for target in map(lambda x:x[0], target_list):
     if target not in installed_rust_targets:
-        if missing_rust_targets != '':
-            missing_rust_targets += ' '
-        missing_rust_targets += target
+        missing_rust_targets.append(target)
         
 
-if missing_rust_targets != '':
-    print('ERROR: One or more android rust targets are missing. Please install them with `rustup target add ' + missing_rust_targets + '`')
+if len(missing_rust_targets) > 0:
+    print('ERROR: One or more android rust targets are missing. Please install them with `rustup target add ' + ' '.join(missing_rust_targets) + '`')
     sys.exit(1)
 
 gradlew = './gradlew'
@@ -62,41 +59,30 @@ for target in target_list:
     os.environ['CFLAGS'] = flags
     os.environ['CXXFLAGS'] = flags
     os.environ['PATH'] = base_path + ';' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'bin')
-    rustflags = '-C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'lib' / 'gcc' / target[0] / '4.9.x')
+    rustflags = ['-C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'lib' / 'gcc' / target[0] / '4.9.x')]
     # Prefer SDK version 16, but fall back to 21 for platforms where 16 isn't available.
-    # Version 21 is only in use for x86 platforms, and the only reason we need x86 platforms is so this can work inside an emulator.
-    rustflags += ' -C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0] / '16')
-    rustflags += ' -C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0] / '21')
-    rustflags += ' -C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0])
-    rustflags += ' -C linker=' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'bin' / (target[0] + '-ld'))
-    os.environ['RUSTFLAGS'] = rustflags
+    # Version 21 is only in use for 64 bit platforms, which is fine because 21 is the oldest version available on those platforms.
+    rustflags.append('-C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0] / '16'))
+    rustflags.append('-C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0] / '21'))
+    rustflags.append('-C link-arg=-L' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / 'llvm' / 'prebuilt').glob('*')) / 'sysroot' / 'usr' / 'lib' / target[0]))
+    rustflags.append('-C linker=' + str(next((android_sdk_dir / 'ndk' / ndk_version / 'toolchains' / (target[1] + '-4.9') / 'prebuilt').glob('*')) / 'bin' / (target[0] + '-ld')))
+    os.environ['RUSTFLAGS'] = ' '.join(rustflags)
     if subprocess.run(['cargo', 'build', '--release', '--target', target[0]]).returncode != 0:
         sys.exit(1)
 
 print('All builds successful, preparing android package now.')
-try:
-    package_path = Path('prefab') / 'modules' / 'hero_workshop_core'
-    (package_path / 'include').mkdir(parents=True)
-    (Path('prefab') / 'prefab.json').write_text('{ "schema_version": 1, "name": "hero_workshop_core", "dependencies": [] }')
-    (package_path / 'module.json').write_text('{ "export_libraries": [], "android": {} }')
-    ndk_major_version = ndk_version[0:ndk_version.find('.')]
+ndk_major_version = ndk_version[0:ndk_version.find('.')]
+with zipfile.ZipFile('hero_workshop_core.aar', mode='w', strict_timestamps=False) as zipref:
+    package_path = 'prefab/modules/hero_workshop_core'
+    zipref.write('AndroidManifest.xml')
+    zipref.writestr('prefab/prefab.json', '{ "schema_version": 1, "name": "hero_workshop_core", "dependencies": [] }')
+    zipref.writestr(package_path + '/module.json', '{ "export_libraries": [], "android": {} }')
     for target in target_list:
-        target_path = (package_path / 'libs' / ('android.' + target[2]))
-        target_path.mkdir(parents=True)
-        shutil.copy(Path('target') / target[0] / 'release' / 'libhero_workshop_core.a', target_path)
-        (target_path / 'include').mkdir()
-        for header_path in (Path('target') / target[0] / 'cxxbridge').glob('**/*.h'):
-            dest_path = Path(str(target_path / 'include') + str(header_path)[len(str(Path('target') / target[0] / 'cxxbridge')):])
-            dest_path.parent.mkdir(exist_ok=True, parents=True)
-            shutil.copy(header_path, dest_path)
-        (target_path / 'abi.json').write_text('{{ "abi": "{abi}", "api": {api}, "ndk": {ndk}, "stl": "c++_static" }}'.format(abi = target[2], api = 16, ndk = ndk_major_version))
-    with zipfile.ZipFile('hero_workshop_core.aar', mode='w') as zipref:
-        zipref.write('AndroidManifest.xml')
-        for path in Path('prefab').glob('**/*'):
-            zipref.write(path)
-except Exception as e:
-    print('Error making package:', e)
-else:
-    print('Package ready!')
-finally:
-    shutil.rmtree('prefab')
+        target_path = package_path + '/libs/android.' + target[2]
+        zipref.writestr(target_path + '/abi.json', '{{ "abi": "{abi}", "api": 16, "ndk": {ndk}, "stl": "c++_static" }}'.format(abi = target[2], ndk = ndk_major_version))
+        zipref.write(Path('target') / target[0] / 'release' / 'libhero_workshop_core.a', target_path + '/libhero_workshop_core.a')
+        headers_path = Path('target') / target[0] / 'cxxbridge'
+        for header_path in headers_path.glob('**/*.h'):
+            dest_path = target_path + '/include' + str(header_path)[len(str(headers_path)):].replace('\\', '/')
+            zipref.write(header_path, dest_path)
+print('Package ready!')
