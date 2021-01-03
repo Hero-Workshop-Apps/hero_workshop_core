@@ -1,353 +1,353 @@
-syntax = "proto3";
-
-import "google/protobuf/empty.proto";
-
-package HeroWorkshop;
-
-enum Ability {
-    ABILITY_STRENGTH = 0;
-    ABILITY_DEXTERITY = 1;
-    ABILITY_CONSTITUTION = 2;
-    ABILITY_INTELLIGENCE = 3;
-    ABILITY_WISDOM = 4;
-    ABILITY_CHARISMA = 5;
-}
-
-enum Training {
-    TRAINING_NO_TRAINING = 0;
-    TRAINING_TRAINED = 1;
-    TRAINING_EXPERT = 2;
-    TRAINING_MASTER = 3;
-    TRAINING_LEGENDARY = 4;
-}
-
-enum Size {
-    SIZE_TINY = 0;
-    SIZE_SMALL = 1;
-    SIZE_MEDIUM = 2;
-    SIZE_LARGE = 3;
-    SIZE_HUGE = 4;
-    SIZE_GARGANTUAN = 5;
-}
-
-enum LawAlignment {
-    LAW_ALIGNMENT_CHAOTIC = 0;
-    LAW_ALIGNMENT_NEUTRAL = 1;
-    LAW_ALIGNMENT_LAWFUL = 2;
-}
-
-enum GoodAlignment {
-    GOOD_ALIGNMENT_EVIL = 0;
-    GOOD_ALIGNMENT_NEUTRAL = 1;
-    GOOD_ALIGNMENT_GOOD = 2;
-}
-
-message Alignment {
-    LawAlignment lawAlignment = 1;
-    GoodAlignment goodAlignment = 2;
-}
-
-message Skill {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-message SkillTraining {
-    Skill skill = 1;
-    Training training = 2;
-}
-
-message Class {
-    int32 id = 1;
-    string name = 2;
-    int32 baseHp = 3;
-    Ability hpScalingAbility = 4;
-    repeated SkillTraining initialProficiencies = 5;
-}
-
-message Feat {
-    int32 id = 1;
-    string name = 2;
-    int32 level = 3;
-    string description = 4;
-    repeated int32 classes = 5;
-}
-
-message Trait {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-message Tradition {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-message Bloodline {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-message Deity {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-message Targeting {
-    uint32 range = 1;
-    string targetType = 2;
-    oneof type {
-        uint32 quantity = 3;
-        uint32 burst = 4;
-        uint32 cone = 5;
-    }
-}
-
-message Duration {
-    oneof type {
-        google.protobuf.Empty sustained = 1;
-        uint32 minutes = 2;
-        google.protobuf.Empty instant = 3;
-        google.protobuf.Empty untilStartOfNextTurn = 4;
-        google.protobuf.Empty untilEndOfTurn = 5;
-    }
-}
-
-message Heightened {
-    oneof type {
-        int32 levelDiff = 1; // i.e. Heightened (+1)
-        int32 constLevel = 2; // i.e. Heightened (5th)
-    }
-}
-
-// TODO: Should this be an enum?
-message SpellComponent {
-    int32 id = 1;
-    string name = 2;
-}
-
-// If you change this message don't forget to also change SpellAlterations
-message Spell {
-    int32 id = 1;
-    string name = 2;
-    uint32 level = 3;
-    string description = 4;
-    repeated int32 traits = 5;
-    repeated int32 traditions = 6;
-    Targeting targeting = 7;
-    Duration duration = 8;
-    int32 bloodline = 9;
-    repeated int32 deities = 10;
-    repeated Heightened heightens = 11;
-    repeated SpellComponent components = 12;
-    uint32 actions = 13;
-}
-
-message Language {
-    int32 id = 1;
-    string name = 2;
-    repeated string speakers = 3;
-}
-
-message Sense {
-    int32 id = 1;
-    string name = 2;
-    string description = 3;
-}
-
-// AKA Race
-message Ancestry {
-    int32 id = 1;
-    string name = 2;
-    uint32 hp = 3;
-    Size size = 4;
-    uint32 speed = 5;
-    repeated Ability abilityBoosts = 6;
-    repeated Ability abilityFlaws = 7;
-    repeated int32 baseLanguages = 8;
-    repeated int32 extraLanguages = 9;
-    repeated int32 senses = 10;
-}
-
-message AbilityScore {
-    Ability ability = 1;
-    int32 score = 2;
-}
-
-enum ArmorType {
-    ARMOR_TYPE_UNARMORED = 0;
-    ARMOR_TYPE_LIGHT = 1;
-    ARMOR_TYPE_MEDIUM = 2;
-    ARMOR_TYPE_HEAVY = 3;
-}
-
-message Equipment {
-    // TODO
-}
-
-message EquipmentCategory {
-    int32 id = 1 ;
-    string name = 2;
-}
-
-message WeaponTraining {
-    int32 equipmentCategory = 1;
-    Training training = 2;
-}
-
-message ConfiguredFeat {
-    int32 feat = 1;
-    string configuration = 2;
-}
-
-message Item {
-    int32 id = 1;
-    string name = 2;
-    //TODO
-}
-
-message ConfiguredItem {
-    int32 id = 1;
-    // TODO
-}
-
-message FreeActionOrReaction {
-    // TODO
-}
-
-message ConfiguredSpell {
-    int32 spell = 1;
-    bool signature = 2;
-    oneof altered {
-        SpellAlterations spellAlterations = 3;
-    }
-}
-
-message ConfiguredEquipment {
-    int32 id = 1;
-    // TODO
-}
-
-// These messages exist because Protobufs is dumb and won't let a oneof field be repeated.
-
-message RepeatedInt32 {
-    repeated int32 ints = 1;
-}
-
-message RepeatedHeightens {
-    repeated Heightened heightens = 1;
-}
-
-message RepeatedSpellComponents {
-    repeated SpellComponent components = 1;
-}
-
-// In this context oneof is used to provide the field with a "not set" state
-message SpellAlterations {
-    oneof name {
-        string newName = 1;
-    }
-    oneof level {
-        uint32 newLevel = 2;
-    }
-    oneof description {
-        string newDescription = 3;
-    }
-    oneof traits {
-        RepeatedInt32 newTraits = 4;
-    }
-    oneof traditions {
-        RepeatedInt32 newTraditions = 5;
-    }
-    oneof targeting {
-        Targeting newTargeting = 6;
-    }
-    oneof duration {
-        Duration newDuration = 7;
-    }
-    oneof bloodline {
-        int32 newBloodline = 8;
-    }
-    oneof deities {
-        RepeatedInt32 newDeities = 9;
-    }
-    oneof heightens {
-        RepeatedHeightens newHeightens = 20;
-    }
-    oneof components {
-        RepeatedSpellComponents newComponents = 11;
-    }
-    oneof actions {
-        uint32 newActions = 12;
-    }
-}
-
-message Character {
-    int32 id = 1;
-    string name = 2;
-    string playerName = 3;
-    int32 experience = 4;
-    int32 ancestry = 5;
-    string background = 6;
-    int32 class = 7;
-    Size size = 8;
-    Alignment alignment = 9;
-    repeated int32 traits = 10;
-    int32 level = 11;
-    repeated int32 deities = 12;
-    repeated AbilityScore abilityScores = 13;
-    Training unarmoredTraining = 14;
-    Training lightArmorTraining = 15;
-    Training mediumArmorTraining = 16;
-    Training heavyArmorTraining = 17;
-    int32 maxHp = 18;
-    Training fortitudeTraining = 19;
-    Training reflexTraining = 20;
-    Training willTraining = 21;
-    Training perceptionTraining = 22;
-    Training classDcTraining = 23;
-    int32 speed = 24;
-    repeated SkillTraining skills = 25;
-    repeated ConfiguredEquipment equippedItems = 26;
-    repeated WeaponTraining weaponTrainings = 27;
-    repeated int32 languages = 28;
-    repeated ConfiguredFeat ancestryFeats = 29;
-    repeated ConfiguredFeat classFeats = 30;
-    repeated ConfiguredFeat skillFeats = 31;
-    repeated ConfiguredFeat generalFeats = 32;
-    repeated ConfiguredFeat bonusFeats = 33;
-    repeated ConfiguredItem wornItems = 34;
-    repeated ConfiguredItem readiedItems = 35;
-    repeated ConfiguredItem otherItems = 36;
-    // This represents all of the currency this character has expressed as a number of copper coins
-    int32 cumulativeCopperPieces = 37;
-    string ethnicity = 38;
-    string nationality = 39;
-    string birthplace = 40;
-    int32 age = 41;
-    string genderAndPronouns = 42;
-    string height = 43;
-    string weight = 44;
-    string appearance = 45;
-    string attitude = 46;
-    string beliefs = 47;
-    string likes = 48;
-    string dislikes = 49;
-    string catchphrases = 50;
-    string campaignNotes = 51;
-    string allies = 52;
-    string enemies = 53;
-    string organizations = 54;
-    repeated FreeActionOrReaction freeActionsAndReactions = 55;
-    Training spellAttackTraining = 56;
-    Training spellDcTraining = 57;
-    repeated int32 magicTraditions = 58;
-    repeated int32 spellSlotMaximums = 59;
-    repeated ConfiguredSpell spells = 60;
-    int32 maximumFocusPoints = 61;
-}
+ syntax = "proto3";
+ 
+ import "google/protobuf/empty.proto";
+ 
+ package HeroWorkshop;
+ 
+ enum Ability {
+     ABILITY_STRENGTH = 0;
+     ABILITY_DEXTERITY = 1;
+     ABILITY_CONSTITUTION = 2;
+     ABILITY_INTELLIGENCE = 3;
+     ABILITY_WISDOM = 4;
+     ABILITY_CHARISMA = 5;
+ }
+ 
+ enum Training {
+     TRAINING_NO_TRAINING = 0;
+     TRAINING_TRAINED = 1;
+     TRAINING_EXPERT = 2;
+     TRAINING_MASTER = 3;
+     TRAINING_LEGENDARY = 4;
+ }
+ 
+ enum Size {
+     SIZE_TINY = 0;
+     SIZE_SMALL = 1;
+     SIZE_MEDIUM = 2;
+     SIZE_LARGE = 3;
+     SIZE_HUGE = 4;
+     SIZE_GARGANTUAN = 5;
+ }
+ 
+ enum LawAlignment {
+     LAW_ALIGNMENT_CHAOTIC = 0;
+     LAW_ALIGNMENT_NEUTRAL = 1;
+     LAW_ALIGNMENT_LAWFUL = 2;
+ }
+ 
+ enum GoodAlignment {
+     GOOD_ALIGNMENT_EVIL = 0;
+     GOOD_ALIGNMENT_NEUTRAL = 1;
+     GOOD_ALIGNMENT_GOOD = 2;
+ }
+ 
+ message Alignment {
+     LawAlignment lawAlignment = 1;
+     GoodAlignment goodAlignment = 2;
+ }
+ 
+ message Skill {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ message SkillTraining {
+     Skill skill = 1;
+     Training training = 2;
+ }
+ 
+ message Class {
+     int32 id = 1;
+     string name = 2;
+     int32 baseHp = 3;
+     Ability hpScalingAbility = 4;
+     repeated SkillTraining initialProficiencies = 5;
+ }
+ 
+ message Feat {
+     int32 id = 1;
+     string name = 2;
+     int32 level = 3;
+     string description = 4;
+     repeated int32 classes = 5;
+ }
+ 
+ message Trait {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ message Tradition {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ message Bloodline {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ message Deity {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ message Targeting {
+     uint32 range = 1;
+     string targetType = 2;
+     oneof type {
+         uint32 quantity = 3;
+         uint32 burst = 4;
+         uint32 cone = 5;
+     }
+ }
+ 
+ message Duration {
+     oneof type {
+         google.protobuf.Empty sustained = 1;
+         uint32 minutes = 2;
+         google.protobuf.Empty instant = 3;
+         google.protobuf.Empty untilStartOfNextTurn = 4;
+         google.protobuf.Empty untilEndOfTurn = 5;
+     }
+ }
+ 
+ message Heightened {
+     oneof type {
+         int32 levelDiff = 1; // i.e. Heightened (+1)
+         int32 constLevel = 2; // i.e. Heightened (5th)
+     }
+ }
+ 
+ // TODO: Should this be an enum?
+ message SpellComponent {
+     int32 id = 1;
+     string name = 2;
+ }
+ 
+ // If you change this message don't forget to also change SpellAlterations
+ message Spell {
+     int32 id = 1;
+     string name = 2;
+     uint32 level = 3;
+     string description = 4;
+     repeated int32 traits = 5;
+     repeated int32 traditions = 6;
+     Targeting targeting = 7;
+     Duration duration = 8;
+     int32 bloodline = 9;
+     repeated int32 deities = 10;
+     repeated Heightened heightens = 11;
+     repeated SpellComponent components = 12;
+     uint32 actions = 13;
+ }
+ 
+ message Language {
+     int32 id = 1;
+     string name = 2;
+     repeated string speakers = 3;
+ }
+ 
+ message Sense {
+     int32 id = 1;
+     string name = 2;
+     string description = 3;
+ }
+ 
+ // AKA Race
+ message Ancestry {
+     int32 id = 1;
+     string name = 2;
+     uint32 hp = 3;
+     Size size = 4;
+     uint32 speed = 5;
+     repeated Ability abilityBoosts = 6;
+     repeated Ability abilityFlaws = 7;
+     repeated int32 baseLanguages = 8;
+     repeated int32 extraLanguages = 9;
+     repeated int32 senses = 10;
+ }
+ 
+ message AbilityScore {
+     Ability ability = 1;
+     int32 score = 2;
+ }
+ 
+ enum ArmorType {
+     ARMOR_TYPE_UNARMORED = 0;
+     ARMOR_TYPE_LIGHT = 1;
+     ARMOR_TYPE_MEDIUM = 2;
+     ARMOR_TYPE_HEAVY = 3;
+ }
+ 
+ message Equipment {
+     // TODO
+ }
+ 
+ message EquipmentCategory {
+     int32 id = 1 ;
+     string name = 2;
+ }
+ 
+ message WeaponTraining {
+     int32 equipmentCategory = 1;
+     Training training = 2;
+ }
+ 
+ message ConfiguredFeat {
+     int32 feat = 1;
+     string configuration = 2;
+ }
+ 
+ message Item {
+     int32 id = 1;
+     string name = 2;
+     //TODO
+ }
+ 
+ message ConfiguredItem {
+     int32 id = 1;
+     // TODO
+ }
+ 
+ message FreeActionOrReaction {
+     // TODO
+ }
+ 
+ message ConfiguredSpell {
+     int32 spell = 1;
+     bool signature = 2;
+     oneof altered {
+         SpellAlterations spellAlterations = 3;
+     }
+ }
+ 
+ message ConfiguredEquipment {
+     int32 id = 1;
+     // TODO
+ }
+ 
+ // These messages exist because Protobufs is dumb and won't let a oneof field be repeated.
+ 
+ message RepeatedInt32 {
+     repeated int32 ints = 1;
+ }
+ 
+ message RepeatedHeightens {
+     repeated Heightened heightens = 1;
+ }
+ 
+ message RepeatedSpellComponents {
+     repeated SpellComponent components = 1;
+ }
+ 
+ // In this context oneof is used to provide the field with a "not set" state
+ message SpellAlterations {
+     oneof name {
+         string newName = 1;
+     }
+     oneof level {
+         uint32 newLevel = 2;
+     }
+     oneof description {
+         string newDescription = 3;
+     }
+     oneof traits {
+         RepeatedInt32 newTraits = 4;
+     }
+     oneof traditions {
+         RepeatedInt32 newTraditions = 5;
+     }
+     oneof targeting {
+         Targeting newTargeting = 6;
+     }
+     oneof duration {
+         Duration newDuration = 7;
+     }
+     oneof bloodline {
+         int32 newBloodline = 8;
+     }
+     oneof deities {
+         RepeatedInt32 newDeities = 9;
+     }
+     oneof heightens {
+         RepeatedHeightens newHeightens = 20;
+     }
+     oneof components {
+         RepeatedSpellComponents newComponents = 11;
+     }
+     oneof actions {
+         uint32 newActions = 12;
+     }
+ }
+ 
+ message Character {
+     int32 id = 1;
+     string name = 2;
+     string playerName = 3;
+     int32 experience = 4;
+     int32 ancestry = 5;
+     string background = 6;
+     int32 class = 7;
+     Size size = 8;
+     Alignment alignment = 9;
+     repeated int32 traits = 10;
+     int32 level = 11;
+     repeated int32 deities = 12;
+     repeated AbilityScore abilityScores = 13;
+     Training unarmoredTraining = 14;
+     Training lightArmorTraining = 15;
+     Training mediumArmorTraining = 16;
+     Training heavyArmorTraining = 17;
+     int32 maxHp = 18;
+     Training fortitudeTraining = 19;
+     Training reflexTraining = 20;
+     Training willTraining = 21;
+     Training perceptionTraining = 22;
+     Training classDcTraining = 23;
+     int32 speed = 24;
+     repeated SkillTraining skills = 25;
+     repeated ConfiguredEquipment equippedItems = 26;
+     repeated WeaponTraining weaponTrainings = 27;
+     repeated int32 languages = 28;
+     repeated ConfiguredFeat ancestryFeats = 29;
+     repeated ConfiguredFeat classFeats = 30;
+     repeated ConfiguredFeat skillFeats = 31;
+     repeated ConfiguredFeat generalFeats = 32;
+     repeated ConfiguredFeat bonusFeats = 33;
+     repeated ConfiguredItem wornItems = 34;
+     repeated ConfiguredItem readiedItems = 35;
+     repeated ConfiguredItem otherItems = 36;
+     // This represents all of the currency this character has expressed as a number of copper coins
+     int32 cumulativeCopperPieces = 37;
+     string ethnicity = 38;
+     string nationality = 39;
+     string birthplace = 40;
+     int32 age = 41;
+     string genderAndPronouns = 42;
+     string height = 43;
+     string weight = 44;
+     string appearance = 45;
+     string attitude = 46;
+     string beliefs = 47;
+     string likes = 48;
+     string dislikes = 49;
+     string catchphrases = 50;
+     string campaignNotes = 51;
+     string allies = 52;
+     string enemies = 53;
+     string organizations = 54;
+     repeated FreeActionOrReaction freeActionsAndReactions = 55;
+     Training spellAttackTraining = 56;
+     Training spellDcTraining = 57;
+     repeated int32 magicTraditions = 58;
+     repeated int32 spellSlotMaximums = 59;
+     repeated ConfiguredSpell spells = 60;
+     int32 maximumFocusPoints = 61;
+ }
